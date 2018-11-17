@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gq.luma.demorenderer.standalone.StandaloneGUIController">
+   <children>
+      <TabPane tabClosingPolicy="UNAVAILABLE">
+        <tabs>
+          <Tab text="Render">
+               <content>
+                  <BorderPane>
+                     <bottom>
+                        <HBox alignment="CENTER" spacing="5.0" BorderPane.alignment="CENTER">
+                           <children>
+                              <Button fx:id="startButton" mnemonicParsing="false" onAction="#startPressed" text="Start" />
+                              <Button fx:id="softStopButton" disable="true" mnemonicParsing="false" onAction="#softStopPressed" text="Stop Before Next Demo" />
+                              <Button fx:id="forceStopButton" disable="true" mnemonicParsing="false" onAction="#hardStopPressed" text="Force Stop Now" />
+                              <Separator orientation="VERTICAL" prefHeight="33.0" prefWidth="0.0" />
+                              <Button mnemonicParsing="false" onAction="#addDemoPressed" text="Add Demo" />
+                              <Button fx:id="clearAllButton" disable="true" mnemonicParsing="false" onAction="#clearAllPressed" text="Clear All" />
+                           </children>
+                        </HBox>
+                     </bottom>
+                     <center>
+                        <ScrollPane fitToWidth="true" minHeight="250.0" BorderPane.alignment="CENTER">
+                           <content>
+                              <GridPane fx:id="demoGrid" alignment="CENTER_RIGHT" prefHeight="30.0" prefWidth="504.0">
+                                <columnConstraints>
+                                  <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
+                                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="352.0" minWidth="10.0" percentWidth="60.0" />
+                                    <ColumnConstraints hgrow="SOMETIMES" maxWidth="329.0" minWidth="10.0" />
+                                    <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
+                                    <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
+                                </columnConstraints>
+                                <rowConstraints>
+                                  <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                </rowConstraints>
+                                 <children>
+                                    <Hyperlink prefHeight="23.0" text="demoname.dem link" GridPane.columnIndex="1" />
+                                    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" text="X" />
+                                    <Button mnemonicParsing="false" text="↑" GridPane.columnIndex="3" />
+                                    <Button mnemonicParsing="false" prefHeight="25.0" prefWidth="6.0" text="↓" GridPane.columnIndex="4" />
+                                    <Label text="Waiting..." GridPane.columnIndex="2">
+                                       <padding>
+                                          <Insets left="5.0" />
+                                       </padding>
+                                    </Label>
+                                 </children>
+                              </GridPane>
+                           </content>
+                           <BorderPane.margin>
+                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                           </BorderPane.margin>
+                        </ScrollPane>
+                     </center>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                  </BorderPane>
+               </content>
+          </Tab>
+          <Tab text="Settings">
+               <content>
+                  <BorderPane>
+                     <center>
+                        <GridPane BorderPane.alignment="CENTER">
+                           <columnConstraints>
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="20.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="2.0" minWidth="10.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="32.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" maxWidth="5.0" minWidth="10.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="35.0" prefWidth="100.0" />
+                           </columnConstraints>
+                           <rowConstraints>
+                              <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                           </rowConstraints>
+                           <children>
+                              <VBox prefHeight="323.0" prefWidth="127.0" spacing="5.0">
+                                 <children>
+                                    <BorderPane>
+                                       <left>
+                                          <Label text="Width:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <TextField fx:id="widthField" prefHeight="25.0" prefWidth="45.0" text="1920" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefWidth="200.0">
+                                       <left>
+                                          <Label text="Height:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <TextField fx:id="heightField" prefHeight="25.0" prefWidth="45.0" text="1080" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefWidth="200.0">
+                                       <left>
+                                          <Label text="Fps:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <TextField fx:id="fpsFeild" prefHeight="25.0" prefWidth="30.0" text="60" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefWidth="200.0">
+                                       <left>
+                                          <Label text="Frameblend:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <TextField fx:id="frameblendField" prefHeight="25.0" prefWidth="30.0" text="32" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                 </children>
+                                 <padding>
+                                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                                 </padding>
+                              </VBox>
+                              <Separator maxWidth="5.0" orientation="VERTICAL" prefHeight="200.0" prefWidth="5.0" GridPane.columnIndex="1" />
+                              <VBox prefHeight="323.0" prefWidth="173.0" spacing="5.0" GridPane.columnIndex="2">
+                                 <children>
+                                    <BorderPane layoutX="20.0" layoutY="20.0" prefHeight="68.0" prefWidth="153.0">
+                                       <top>
+                                          <Label alignment="TOP_CENTER" contentDisplay="CENTER" text="Game folder (common/Portal 2/portal2):" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER" />
+                                       </top>
+                                       <left>
+                                          <Hyperlink fx:id="gameFolderHyperlink" onAction="#gameFolderHyperlinkPressed" text="./" textOverrun="CENTER_WORD_ELLIPSIS" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <Button mnemonicParsing="false" onAction="#gameFolderOpenPressed" text="Open" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefHeight="55.0" prefWidth="153.0">
+                                       <top>
+                                          <Label text="Output Folder:" BorderPane.alignment="CENTER" />
+                                       </top>
+                                       <left>
+                                          <Hyperlink fx:id="outputFolderHyperlink" onAction="#outputFolderHyperlinkPressed" text="./" textOverrun="CENTER_WORD_ELLIPSIS" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <Button mnemonicParsing="false" onAction="#outputFolderOpenPressed" text="Open" BorderPane.alignment="CENTER" />
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefHeight="43.0" prefWidth="153.0">
+                                       <top>
+                                          <Label alignment="CENTER" text="Output Format:" BorderPane.alignment="CENTER" />
+                                       </top>
+                                       <bottom>
+                                          <ChoiceBox fx:id="outputFormatBox" prefHeight="25.0" prefWidth="118.0" value="H.264" BorderPane.alignment="CENTER">
+                                            <items>
+                                                <FXCollections fx:factory="observableArrayList">
+                                                    <String fx:value="H.264" />
+                                                    <String fx:value="GIF" />
+                                                    <String fx:value="DNXHD" />
+                                                    <String fx:value="HuffYUV" />
+                                                    <String fx:value="Raw" />
+                                                    <String fx:value="Wav" />
+                                                </FXCollections>
+                                            </items>
+                                          </ChoiceBox>
+                                       </bottom>
+                                    </BorderPane>
+                                    <BorderPane prefWidth="200.0">
+                                       <top>
+                                          <CheckBox mnemonicParsing="false" selected="true" text="Two Pass*" BorderPane.alignment="CENTER" />
+                                       </top>
+                                       <left>
+                                          <Label text="CRF**:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <TextField prefHeight="25.0" prefWidth="32.0" text="18" BorderPane.alignment="CENTER" />
+                                       </right>
+                                       <bottom>
+                                          <Label text="* - Only used for formats supporting multiple passes&#13;** - Only used for formats supporting quality selection, lower is better" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER" />
+                                       </bottom>
+                                       <padding>
+                                          <Insets bottom="5.0" />
+                                       </padding>
+                                    </BorderPane>
+                                 </children>
+                                 <padding>
+                                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                                 </padding>
+                              </VBox>
+                              <Separator orientation="VERTICAL" prefHeight="200.0" GridPane.columnIndex="3" />
+                              <VBox prefHeight="323.0" prefWidth="199.0" spacing="5.0" GridPane.columnIndex="4">
+                                 <children>
+                                    <BorderPane prefWidth="200.0">
+                                       <left>
+                                          <Label text="Blending Weighter:" BorderPane.alignment="CENTER" />
+                                       </left>
+                                       <right>
+                                          <ChoiceBox prefHeight="25.0" prefWidth="76.0" BorderPane.alignment="CENTER">
+                                             <contextMenu>
+                                                <ContextMenu>
+                                                  <items>
+                                                    <MenuItem mnemonicParsing="false" text="Unspecified Action" />
+                                                  </items>
+                                                </ContextMenu>
+                                             </contextMenu>
+                                          </ChoiceBox>
+                                       </right>
+                                    </BorderPane>
+                                    <BorderPane prefWidth="180.0">
+                                       <right>
+                                          <ChoiceBox prefHeight="25.0" prefWidth="58.0" BorderPane.alignment="CENTER" />
+                                       </right>
+                                       <left>
+                                          <Label text="Start on odd tick:" BorderPane.alignment="CENTER">
+                                             <BorderPane.margin>
+                                                <Insets right="5.0" />
+                                             </BorderPane.margin>
+                                          </Label>
+                                       </left>
+                                    </BorderPane>
+                                    <CheckBox mnemonicParsing="false" text="Use &quot;HQ&quot; config" />
+                                    <CheckBox mnemonicParsing="false" selected="true" text="Demo Interpolate" />
+                                    <CheckBox mnemonicParsing="false" selected="true" text="Auto-Remove Broken Frames" />
+                                    <CheckBox mnemonicParsing="false" text="Use portal_demohack" />
+                                    <BorderPane prefHeight="200.0" prefWidth="200.0">
+                                       <top>
+                                          <Label text="Custom Commands:" BorderPane.alignment="CENTER" />
+                                       </top>
+                                       <center>
+                                          <TextArea BorderPane.alignment="CENTER" />
+                                       </center>
+                                    </BorderPane>
+                                 </children>
+                                 <padding>
+                                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                                 </padding>
+                              </VBox>
+                           </children>
+                        </GridPane>
+                     </center>
+                  </BorderPane>
+               </content>
+          </Tab>
+        </tabs>
+      </TabPane>
+   </children>
+</AnchorPane>
