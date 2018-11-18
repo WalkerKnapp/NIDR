@@ -41,7 +41,7 @@ public class HumbleVideoOutput extends PipelineOutput {
         switch (settings.getOutputFormat()){
             case H264:
                 videoEncoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUV420P);
-                videoEncoder.setProperty("preset", "fast");
+                videoEncoder.setProperty("preset", "superfast");
                 videoEncoder.setProperty("crf", settings.getCrf());
                 break;
             case DNXHD:

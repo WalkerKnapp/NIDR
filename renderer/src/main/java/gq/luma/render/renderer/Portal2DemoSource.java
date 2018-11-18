@@ -65,6 +65,8 @@ public class Portal2DemoSource extends DemoSource {
 
                     //TODO: Send info packet downstream in the pipeline
 
+                    runningGames.get(SrcGame.PORTAL2).getWatcher().provideDemo(Files.newByteChannel(demo.getDemoPath()));
+
                     // Write start script
                     boolean shouldStartOnOddTick = ((renderRequest.getSettings().isStartOddSpecified() && renderRequest.getSettings().isForceStartOdd())
                             || (!renderRequest.getSettings().isStartOddSpecified() && demo.getFirstPlaybackTick() % 2 == 0))
@@ -123,7 +125,7 @@ public class Portal2DemoSource extends DemoSource {
             configLines.add("startmovie nidr\\tga_ raw");
         }
 
-        configLines.add("playdemo \"" + demo.getDemoPath().toAbsolutePath().toString().replace('\\', '/') + "\"");
+        configLines.add("playdemo nidr/dem");
         configLines.add("hud_reloadscheme");
 
         Files.write(configuration.getConfigPath().resolve("nidr.run.cfg"), configLines);

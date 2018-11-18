@@ -1,8 +1,10 @@
 package gq.luma.render.engine.filesystem;
 
+import gq.luma.render.engine.SrcGame;
 import gq.luma.render.engine.SrcGameConfiguration;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
+import jnr.ffi.Runtime;
 import jnr.ffi.types.mode_t;
 import jnr.ffi.types.off_t;
 import jnr.ffi.types.size_t;
@@ -13,15 +15,21 @@ import ru.serce.jnrfuse.struct.FuseFileInfo;
 import ru.serce.jnrfuse.struct.Statvfs;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static jnr.ffi.Platform.OS.WINDOWS;
 
 public class SrcGameWatcher extends FuseStubFS {
+
+    private SeekableByteChannel demoProvider;
 
     private FSAudioHandler audioHandler;
     private FSVideoHandler videoHandler;
@@ -54,6 +62,21 @@ public class SrcGameWatcher extends FuseStubFS {
         this.mount(nidrPath, false, false);
     }
 
+    public void provideDemo(SeekableByteChannel byteChannel){
+        this.demoProvider = byteChannel;
+    }
+
+    public static void main(String[] args) throws IOException {
+        SrcGameWatcher w = new SrcGameWatcher(new SrcGameConfiguration(SrcGame.PORTAL2,
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\cfg",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\console.log",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2.exe",
+                "portal2.exe"), null, null);
+        w.provideDemo(Files.newByteChannel(Paths.get("H:\\Portal 2\\Rendering\\PitFlings_1575_Zypeh.dem")));
+        new Scanner(System.in).nextLine();
+    }
+
     public CompletableFuture<String> watch(String... contains){
         CompletableFuture<String> cf = new CompletableFuture<>();
         activeMonitors.add(new LogMonitor(cf, contains));
@@ -77,11 +100,15 @@ public class SrcGameWatcher extends FuseStubFS {
 
     @Override
     public int open(String path, FuseFileInfo fi) {
+        //System.out.println("Open call to: " + path);
+
         final int pathLength = path.length();
         char lastChar = path.charAt(pathLength - 1);
         if(lastChar == 'g'){
             fi.fh.set(Integer.MIN_VALUE);
         }
+
+
         return 0;
     }
 
@@ -126,6 +153,8 @@ public class SrcGameWatcher extends FuseStubFS {
 
     @Override
     public int getattr(String path, FileStat stat) {
+        //System.out.println("Getattr call to " + path);
+
         final int pathLength = path.length();
         char lastChar = path.charAt(pathLength - 1);
 
@@ -157,9 +186,43 @@ public class SrcGameWatcher extends FuseStubFS {
                 } else {
                     return -ErrorCodes.ENOENT();
                 }
+            case 'm':
+                if(path.charAt(pathLength - 2) == 'e') {
+                    stat.st_mode.set(FileStat.S_IFREG | 0777);
+                    stat.st_uid.set(getContext().uid.get());
+                    stat.st_gid.set(getContext().gid.get());
+                    try {
+                        stat.st_size.set(demoProvider.size());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    return 0;
+                } else {
+                    return -ErrorCodes.ENOENT();
+                }
             default:
                 return -ErrorCodes.ENOENT();
         }
+    }
+
+    @Override
+    public int read(String path, Pointer buf, long size, long offset, FuseFileInfo fi) {
+        //System.out.println("Read to path: " + path + " size: " + size + " offset: " + offset);
+        final int pathLength = path.length();
+        char lastChar = path.charAt(pathLength - 1);
+
+        if(lastChar == 'm'){
+            try {
+                byte[] byteBuf = new byte[(int) size];
+                ByteBuffer buffer = ByteBuffer.wrap(byteBuf);
+                demoProvider.position(offset);
+                demoProvider.read(buffer);
+                buf.put(0, byteBuf, 0, (int) size);
+            } catch (IOException e){
+                throw new IllegalStateException(e);
+            }
+        }
+        return (int) size;
     }
 
     @Override

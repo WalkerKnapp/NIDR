@@ -12,6 +12,7 @@ public class FrameBlender extends PipelineJoint {
     private float multiplier;
 
     private ByteBuffer storedBuffer;
+    private int[] totalData;
     private byte[] wrappedData;
     private int framesAccumulated;
 
@@ -21,6 +22,7 @@ public class FrameBlender extends PipelineJoint {
         multiplier = 1f / settings.getFrameblend();
         bufferSize = settings.getWidth() * settings.getHeight() * 3;
         wrappedData = new byte[bufferSize];
+        totalData = new int[bufferSize];
         storedBuffer = ByteBuffer.wrap(wrappedData);
     }
 
@@ -29,13 +31,20 @@ public class FrameBlender extends PipelineJoint {
         buffer.position(0);
         int j = 0;
         while(buffer.hasRemaining()){
-            wrappedData[j++] += (int)(buffer.get() * multiplier) & 0xFF;
+            totalData[j++] += (buffer.get() & 0xFF);
+            //int sub = ((int) (( * multiplier) + (wrappedData[j] & 0xFF)));
+            //if(sub > 0xFF) System.err.println("Pixel " + j + " is evil.");
+            //wrappedData[j] = (byte) (sub);
+            //j++;
         }
 
         if(framesAccumulated % frameblend == frameblend - 1){
+            for(int i = 0; i < totalData.length; i++){
+                wrappedData[i] = (byte) (totalData[i] / frameblend);
+            }
+
             pushBuffer(storedBuffer);
-            wrappedData = new byte[bufferSize];
-            storedBuffer = ByteBuffer.wrap(wrappedData);
+            totalData = new int[bufferSize];
         }
 
         framesAccumulated++;
