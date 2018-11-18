@@ -27,6 +27,15 @@ public class Portal2DemoSource extends DemoSource {
 
     private long frameSize;
 
+    public Portal2DemoSource(){
+        gameConfigurations.put(SrcGame.PORTAL2, new SrcGameConfiguration(SrcGame.PORTAL2,
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\cfg",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\console.log",
+                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2.exe",
+                "portal2.exe"));
+    }
+
     @Override
     public CompletableFuture<CompletedRender> renderDemo(RenderRequest renderRequest) {
         if(currentRender.get() != null){
@@ -63,7 +72,7 @@ public class Portal2DemoSource extends DemoSource {
                     writeCfg(configuration, renderRequest.getSettings(), demo, shouldStartOnOddTick);
 
                     // Start the render
-                    runningGames.get(SrcGame.PORTAL2).sendCommand("exec nidr.run");
+                    runningGames.get(SrcGame.PORTAL2).sendCommand("exec nidr.run.cfg");
                     if(shouldStartOnOddTick){
                         if(!demo.getMapName().contains("mp_")) {
                             runningGames.get(SrcGame.PORTAL2).getWatcher().watch("Redownloading all lightmaps").join();
@@ -76,7 +85,7 @@ public class Portal2DemoSource extends DemoSource {
                         Thread.sleep(3000);
                         runningGames.get(SrcGame.PORTAL2).sendCommand("sv_alternateticks 1");
                         Thread.sleep(3000);
-                        runningGames.get(SrcGame.PORTAL2).sendCommand("exec nidr.restart");
+                        runningGames.get(SrcGame.PORTAL2).sendCommand("exec nidr.restart.cfg");
                     }
                     updateStatus("Rendering");
 
@@ -114,7 +123,7 @@ public class Portal2DemoSource extends DemoSource {
             configLines.add("startmovie nidr\\tga_ raw");
         }
 
-        configLines.add("playdemo " + demo.getDemoPath().toAbsolutePath().toString());
+        configLines.add("playdemo \"" + demo.getDemoPath().toAbsolutePath().toString().replace('\\', '/') + "\"");
         configLines.add("hud_reloadscheme");
 
         Files.write(configuration.getConfigPath().resolve("nidr.run.cfg"), configLines);
@@ -122,12 +131,6 @@ public class Portal2DemoSource extends DemoSource {
 
     public static void main(String[] args){
         Portal2DemoSource source = new Portal2DemoSource();
-        source.gameConfigurations.put(SrcGame.PORTAL2, new SrcGameConfiguration(SrcGame.PORTAL2,
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\cfg",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\console.log",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2.exe",
-                "portal2.exe"));
         source.renderDemo(null);
         new Scanner(System.in);
     }
@@ -154,6 +157,7 @@ public class Portal2DemoSource extends DemoSource {
         unsafe.copyMemory(buf.address() + frameOffset, frameBufferBasePointer + destOffset, writeLength - frameOffset);
 
         if(offset + writeLength == frameSize){
+            System.out.println("Pushing frame");
             pushBuffer(frameBuffer);
         }
     }

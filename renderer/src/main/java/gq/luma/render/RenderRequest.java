@@ -9,6 +9,11 @@ public class RenderRequest {
     private RenderSettings settings;
     private String status;
 
+    public RenderRequest(ArrayList<SrcDemo> demos, RenderSettings settings){
+        this.demos = demos;
+        this.settings = settings;
+    }
+
     public ArrayList<SrcDemo> getDemos() {
         return demos;
     }

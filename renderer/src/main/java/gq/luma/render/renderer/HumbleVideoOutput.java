@@ -26,7 +26,7 @@ public class HumbleVideoOutput extends PipelineOutput {
     private ByteBuffer rawFrameBuffer;
     private int frameIndex;
 
-    protected HumbleVideoOutput(RenderSettings settings, Path finalFile) throws IOException, InterruptedException {
+    public HumbleVideoOutput(RenderSettings settings, Path finalFile) throws IOException, InterruptedException {
         super(PipelineDatatype.SuperType.RAW_VIDEO, PipelineDatatype.RAW_BGR24);
 
         muxer = Muxer.make(finalFile.toAbsolutePath().toString(), null, null);
@@ -73,6 +73,8 @@ public class HumbleVideoOutput extends PipelineOutput {
                 videoEncoder.getWidth(), videoEncoder.getHeight(), PixelFormat.Type.PIX_FMT_BGR24, 0);
         videoResampler.open();
 
+        videoPacket = MediaPacket.make();
+
         rawFrame = MediaPicture.make(videoEncoder.getWidth(), videoEncoder.getHeight(), PixelFormat.Type.PIX_FMT_BGR24);
         resampledFrame = MediaPicture.make(videoEncoder.getWidth(), videoEncoder.getHeight(), videoEncoder.getPixelFormat());
 
@@ -98,6 +100,8 @@ public class HumbleVideoOutput extends PipelineOutput {
 
     @Override
     protected void consumeBuffer(ByteBuffer buffer) {
+        System.out.println("Encoding frame: " + frameIndex);
+
         buffer.position(0);
         rawFrameBuffer.position(0);
         rawFrameBuffer.put(buffer);

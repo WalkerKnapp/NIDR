@@ -77,8 +77,15 @@ public class SrcGameWatcher extends FuseStubFS {
 
     @Override
     public int open(String path, FuseFileInfo fi) {
+        final int pathLength = path.length();
+        char lastChar = path.charAt(pathLength - 1);
+        if(lastChar == 'g'){
+            fi.fh.set(Integer.MIN_VALUE);
+        }
         return 0;
     }
+
+    private String latestCreated;
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo fi) {
@@ -100,6 +107,7 @@ public class SrcGameWatcher extends FuseStubFS {
                 return 0; // Path "something.wav"
             case 'a':
             case 'A':
+                latestCreated = path;
                 // Find the frame index from the path name
                 int total = 0;
                 int j = 1;
@@ -135,14 +143,20 @@ public class SrcGameWatcher extends FuseStubFS {
             case 'a':
             case 'A':
                 // File path is "something.tga"
-                //TODO: Handle TGAs
-                return 0;
+                if(path.equals(latestCreated)) {
+                    return 0;
+                } else {
+                    return -ErrorCodes.ENOENT();
+                }
             case 'w':
             case 'W':
                 // File path is "something.wav"
-                //TODO: Check that the latest frame exists
-                stat.st_mode.set(FileStat.S_IFREG | 0777);
-                return 0;
+                if(!latestCreated.isEmpty()) {
+                    stat.st_mode.set(FileStat.S_IFREG | 0777);
+                    return 0;
+                } else {
+                    return -ErrorCodes.ENOENT();
+                }
             default:
                 return -ErrorCodes.ENOENT();
         }
@@ -168,6 +182,7 @@ public class SrcGameWatcher extends FuseStubFS {
     }
 
     private void handleLogEntry(String entry){
+        //System.out.println("Handling log entry: " + entry);
         for(LogMonitor monitor : activeMonitors){
             for(String match : monitor.matches){
                 if(entry.contains(match)){
