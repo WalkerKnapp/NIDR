@@ -38,22 +38,31 @@ public class SrcGameWatcher extends FuseStubFS {
         }
     }
 
-    public SrcGameWatcher(SrcGameConfiguration config) throws IOException {
+    public SrcGameWatcher(SrcGameConfiguration config, FSVideoHandler videoHandler, FSAudioHandler audioHandler) throws IOException {
         // Creates the sub-directory "nidr" if it doesn't already exist
         Path nidrPath = config.getGamePath().resolve("nidr");
-        Files.createDirectories(nidrPath);
 
         // Symbolic link "console.log" to the "nidr" directory
         Files.deleteIfExists(config.getLogPath());
         Files.createSymbolicLink(config.getLogPath(), nidrPath.resolve("console.log"));
 
         activeMonitors = new CopyOnWriteArrayList<>();
+        this.audioHandler = audioHandler;
+        this.videoHandler = videoHandler;
+
+        // Start FUSE filesystem
+        this.mount(nidrPath, false, false);
     }
 
     public CompletableFuture<String> watch(String... contains){
         CompletableFuture<String> cf = new CompletableFuture<>();
         activeMonitors.add(new LogMonitor(cf, contains));
         return cf;
+    }
+
+    public void close(){
+        this.umount();
+        activeMonitors.forEach(logMonitor -> logMonitor.future.completeExceptionally(new IllegalStateException("The game has been closed.")));
     }
 
     @Override

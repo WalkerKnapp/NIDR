@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 public class RenderRequest {
     private ArrayList<SrcDemo> demos;
+    private RenderSettings settings;
     private String status;
 
     public ArrayList<SrcDemo> getDemos() {
@@ -20,5 +21,7 @@ public class RenderRequest {
         this.status = status;
     }
 
-
+    public RenderSettings getSettings() {
+        return settings;
+    }
 }

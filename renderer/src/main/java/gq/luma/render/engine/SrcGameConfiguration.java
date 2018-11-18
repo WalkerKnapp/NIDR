@@ -14,14 +14,23 @@ public class SrcGameConfiguration {
     private String executablePath;
     private String executableName;
 
+    public SrcGameConfiguration(SrcGame game, String gameDir, String configDir, String logPath, String executablePath, String executableName){
+        this.game = game;
+        this.gameDir = gameDir;
+        this.configDir = configDir;
+        this.logPath = logPath;
+        this.executableName = executableName;
+        this.executablePath = executablePath;
+    }
+
     private HashMap<String, String> attributes;
 
     public Path getGamePath(){
         return Paths.get(gameDir);
     }
 
-    public File getConfigDir(){
-        return new File(configDir);
+    public Path getConfigPath(){
+        return Paths.get(configDir);
     }
 
     public Path getLogPath() {
