@@ -1,10 +1,9 @@
 package gq.luma.render.engine.filesystem;
 
 import gq.luma.render.engine.SrcGame;
-import gq.luma.render.engine.SrcGameConfiguration;
+import gq.luma.render.renderer.configuration.SrcGameConfiguration;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
-import jnr.ffi.Runtime;
 import jnr.ffi.types.mode_t;
 import jnr.ffi.types.off_t;
 import jnr.ffi.types.size_t;
@@ -16,7 +15,6 @@ import ru.serce.jnrfuse.struct.Statvfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,32 +47,27 @@ public class SrcGameWatcher extends FuseStubFS {
     public SrcGameWatcher(SrcGameConfiguration config, FSVideoHandler videoHandler, FSAudioHandler audioHandler) throws IOException {
         // Creates the sub-directory "nidr" if it doesn't already exist
         Path nidrPath = config.getGamePath().resolve("nidr");
+        Files.deleteIfExists(nidrPath);
 
         // Symbolic link "console.log" to the "nidr" directory
         Files.deleteIfExists(config.getLogPath());
-        Files.createSymbolicLink(config.getLogPath(), nidrPath.resolve("console.log"));
 
         activeMonitors = new CopyOnWriteArrayList<>();
         this.audioHandler = audioHandler;
         this.videoHandler = videoHandler;
 
+        Path hardLinkPath = Paths.get("V:/");
+
         // Start FUSE filesystem
-        this.mount(nidrPath, false, false);
+        this.mount(hardLinkPath, false, false);
+
+        Files.createSymbolicLink(config.getLogPath(), nidrPath.resolve("console.log"));
+
+        Files.createSymbolicLink(nidrPath, hardLinkPath);
     }
 
     public void provideDemo(SeekableByteChannel byteChannel){
         this.demoProvider = byteChannel;
-    }
-
-    public static void main(String[] args) throws IOException {
-        SrcGameWatcher w = new SrcGameWatcher(new SrcGameConfiguration(SrcGame.PORTAL2,
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\cfg",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2\\console.log",
-                "F:\\SteamLibrary\\steamapps\\common\\Portal 2\\portal2.exe",
-                "portal2.exe"), null, null);
-        w.provideDemo(Files.newByteChannel(Paths.get("H:\\Portal 2\\Rendering\\PitFlings_1575_Zypeh.dem")));
-        new Scanner(System.in).nextLine();
     }
 
     public CompletableFuture<String> watch(String... contains){
@@ -227,6 +220,7 @@ public class SrcGameWatcher extends FuseStubFS {
 
     @Override
     public int write(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi){
+        //System.out.println("Write to path: " + path + " size: " + size + " offset: " + offset);
         int fileHandle = (int) fi.fh.get();
         switch (fileHandle){
             case Integer.MAX_VALUE: // Audio Data

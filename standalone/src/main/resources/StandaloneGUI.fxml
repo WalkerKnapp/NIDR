@@ -49,8 +49,9 @@
                               <GridPane fx:id="demoGrid" alignment="CENTER_RIGHT" prefHeight="30.0" prefWidth="504.0">
                                 <columnConstraints>
                                   <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
-                                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="352.0" minWidth="10.0" percentWidth="60.0" />
-                                    <ColumnConstraints hgrow="SOMETIMES" maxWidth="329.0" minWidth="10.0" />
+                                  <ColumnConstraints hgrow="SOMETIMES" maxWidth="436.0" minWidth="10.0" percentWidth="50.0" prefWidth="334.0" />
+                                    <ColumnConstraints hgrow="SOMETIMES" maxWidth="301.0" minWidth="80.0" prefWidth="100.0" />
+                                    <ColumnConstraints hgrow="SOMETIMES" maxWidth="329.0" minWidth="80.0" />
                                     <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
                                     <ColumnConstraints halignment="CENTER" hgrow="NEVER" maxWidth="36.0" minWidth="36.0" prefWidth="36.0" />
                                 </columnConstraints>
@@ -58,15 +59,24 @@
                                   <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                                 </rowConstraints>
                                  <children>
-                                    <Hyperlink prefHeight="23.0" text="demoname.dem link" GridPane.columnIndex="1" />
+                                    <Hyperlink prefHeight="23.0" text="demoname.dem" GridPane.columnIndex="1" />
                                     <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" text="X" />
-                                    <Button mnemonicParsing="false" text="↑" GridPane.columnIndex="3" />
-                                    <Button mnemonicParsing="false" prefHeight="25.0" prefWidth="6.0" text="↓" GridPane.columnIndex="4" />
-                                    <Label text="Waiting..." GridPane.columnIndex="2">
+                                    <Button mnemonicParsing="false" text="↑" GridPane.columnIndex="4" />
+                                    <Button mnemonicParsing="false" prefHeight="25.0" prefWidth="6.0" text="↓" GridPane.columnIndex="5" />
+                                    <Label text="Waiting..." GridPane.columnIndex="3">
                                        <padding>
                                           <Insets left="5.0" />
                                        </padding>
                                     </Label>
+                                    <ChoiceBox prefWidth="150.0" GridPane.columnIndex="2" value="Auto" >
+                                       <items>
+                                          <FXCollections fx:factory="observableArrayList">
+                                             <String fx:value="Auto" />
+                                             <String fx:value="Even Tick Start" />
+                                             <String fx:value="Odd Tick Start" />
+                                          </FXCollections>
+                                       </items>
+                                    </ChoiceBox>
                                  </children>
                               </GridPane>
                            </content>
@@ -236,7 +246,18 @@
                                     <CheckBox mnemonicParsing="false" text="Use &quot;HQ&quot; config" />
                                     <CheckBox mnemonicParsing="false" selected="true" text="Demo Interpolate" />
                                     <CheckBox mnemonicParsing="false" selected="true" text="Auto-Remove Broken Frames" />
-                                    <CheckBox mnemonicParsing="false" text="Use portal_demohack" />
+                                    <BorderPane layoutX="20.0" layoutY="50.0" prefWidth="180.0">
+                                       <right>
+                                          <ChoiceBox prefHeight="25.0" prefWidth="58.0" BorderPane.alignment="CENTER" />
+                                       </right>
+                                       <left>
+                                          <Label text="Custom CFG:" BorderPane.alignment="CENTER">
+                                             <BorderPane.margin>
+                                                <Insets right="5.0" />
+                                             </BorderPane.margin>
+                                          </Label>
+                                       </left>
+                                    </BorderPane>
                                     <BorderPane prefHeight="200.0" prefWidth="200.0">
                                        <top>
                                           <Label text="Custom Commands:" BorderPane.alignment="CENTER" />
@@ -256,6 +277,11 @@
                   </BorderPane>
                </content>
           </Tab>
+            <Tab text="Games">
+              <content>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+              </content>
+            </Tab>
         </tabs>
       </TabPane>
    </children>

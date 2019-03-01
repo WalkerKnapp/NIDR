@@ -45,11 +45,11 @@ public class HumbleVideoOutput extends PipelineOutput {
                 videoEncoder.setProperty("crf", settings.getCrf());
                 break;
             case DNXHD:
-                videoEncoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUVJ422P);
+                videoEncoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUV422P);
                 videoEncoder.setProperty("b", "185M");
                 break;
             case HUFFYUV:
-                videoEncoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUVJ422P);
+                videoEncoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUV422P);
                 break;
             case GIF:
                 break;

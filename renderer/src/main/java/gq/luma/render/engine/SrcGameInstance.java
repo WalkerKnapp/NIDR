@@ -3,17 +3,16 @@ package gq.luma.render.engine;
 import gq.luma.render.engine.filesystem.FSAudioHandler;
 import gq.luma.render.engine.filesystem.FSVideoHandler;
 import gq.luma.render.engine.filesystem.SrcGameWatcher;
+import gq.luma.render.renderer.configuration.SrcGameConfiguration;
 
-import java.awt.*;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -43,29 +42,32 @@ public class SrcGameInstance {
             watcher = new SrcGameWatcher(configuration, videoHandler, audioHandler);
             addConfigEcho();
 
-            Desktop.getDesktop().browse(new URI("steam://rungameid/" + game.getAppCode()));
-
+            Optional <ProcessHandle> handleOptional = configuration.launchGame();
             watcher.watch("NIDR.Ready").join();
+            //new Scanner(System.in).nextLine();
 
-            ProcessHandle.allProcesses()
-                    .filter(ph -> ph.info().command()
-                            .map(command -> command.contains(configuration.getExecutableName()))
-                            .orElse(false))
-                    .findAny()
-                    .ifPresentOrElse(handle -> {
-                        gameProcessHandle = handle;
-                        handle.onExit().thenRun(() -> {
-                            if(!instanceClosed.get()) {
-                                instanceClosed.set(true);
-                                errorHandler.accept(new IllegalStateException("Game has closed at an unexpected time. Was there a crash?"), true);
-                                watcher.close();
-                            }
-                        });
-                    }, () -> errorHandler.accept(new IllegalStateException("Failed to find game executable when launched. Is the configuration correct?"), false));
+            gameProcessHandle = handleOptional.orElseGet(() ->
+                    ProcessHandle.allProcesses()
+                            .filter(ph -> ph
+                                            .info()
+                                            .command()
+                                            .map(command ->
+                                                    command.contains(configuration.getExecutableName()))
+                                            .orElse(false))
+                            .findAny()
+                            .orElseThrow(() -> new IllegalStateException("Failed to find game executable when launched. Is the configuration correct?")));
+
+            gameProcessHandle.onExit().thenRun(() -> {
+                if(!instanceClosed.get()) {
+                    instanceClosed.set(true);
+                    errorHandler.accept(new IllegalStateException("Game has closed at an unexpected time. Was there a crash?"), true);
+                    watcher.close();
+                }
+            });
 
 
 
-        } catch (IOException | URISyntaxException e) {
+        } catch (IllegalStateException | IOException | URISyntaxException e) {
             errorHandler.accept(new IllegalStateException("Error encountered while trying to launch the source engine. Is the configuration correct?", e), false);
         }
     }

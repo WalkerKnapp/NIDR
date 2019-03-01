@@ -1,7 +1,9 @@
 package gq.luma.render.engine;
 
 public enum SrcGame {
-    PORTAL2("portal2", 620);
+    PORTAL2("portal2", 620),
+    PORTAL("portal", 400),
+    PORTAL_STORIES_MEL("portal_stories", 317400);
 
     private String directoryName;
     private int appCode;
