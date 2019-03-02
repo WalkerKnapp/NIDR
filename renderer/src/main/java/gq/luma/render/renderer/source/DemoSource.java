@@ -12,6 +12,7 @@ import gq.luma.render.engine.SrcGameInstance;
 import gq.luma.render.engine.filesystem.FSAudioHandler;
 import gq.luma.render.engine.filesystem.FSVideoHandler;
 import jnr.ffi.Pointer;
+import jnr.ffi.Runtime;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -20,7 +21,7 @@ import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class DemoSource extends PipelineSource implements FSVideoHandler, FSAudioHandler {
+public abstract class DemoSource extends PipelineSource<ByteBuffer> implements FSVideoHandler, FSAudioHandler {
     protected ExecutorService threadPool = Executors.newFixedThreadPool(Integer.MAX_VALUE);
     protected AtomicReference<RenderRequest> currentRender = new AtomicReference<>(null);
 
@@ -31,9 +32,13 @@ public abstract class DemoSource extends PipelineSource implements FSVideoHandle
 
     private Unsafe unsafe;
     private ByteBuffer frameBuffer;
+    private Pointer frameBufferPointer;
     private long frameBufferBasePointer;
+    private Field bAddr;
+    private long addressBufferOffset;
 
     private long frameSize;
+    private int bufferSize;
 
     public DemoSource() {
         super(PipelineDatatype.SuperType.RAW_VIDEO, PipelineDatatype.RAW_BGR24);
@@ -53,11 +58,14 @@ public abstract class DemoSource extends PipelineSource implements FSVideoHandle
                 this.unsafe = (Unsafe) f.get(null);
 
                 // Setup buffers
-                frameSize = (renderRequest.getSettings().getWidth() * renderRequest.getSettings().getHeight() * 3) + 18;
-                frameBuffer = ByteBuffer.allocateDirect(renderRequest.getSettings().getWidth() * renderRequest.getSettings().getHeight() * 3);
-                Field bAddr = java.nio.Buffer.class.getDeclaredField("address");
+                bufferSize = (renderRequest.getSettings().getWidth() * renderRequest.getSettings().getHeight() * 3);
+                frameSize = bufferSize + 18;
+                frameBuffer = ByteBuffer.allocateDirect(bufferSize);
+                bAddr = java.nio.Buffer.class.getDeclaredField("address");
                 bAddr.setAccessible(true);
                 this.frameBufferBasePointer = (long) bAddr.get(frameBuffer);
+                this.frameBufferPointer = Pointer.wrap(Runtime.getSystemRuntime(), frameBuffer);
+                this.addressBufferOffset = unsafe.objectFieldOffset(bAddr);
 
                 runSyncRender(renderRequest);
 
@@ -109,7 +117,7 @@ public abstract class DemoSource extends PipelineSource implements FSVideoHandle
         // TODO: Handle Audio
     }
 
-    @Override
+    /*@Override
     public void handleVideoData(int index, Pointer buf, long offset, long writeLength) {
         int frameOffset = 0;
         long destOffset = 0;
@@ -120,9 +128,52 @@ public abstract class DemoSource extends PipelineSource implements FSVideoHandle
         }
         unsafe.copyMemory(buf.address() + frameOffset, frameBufferBasePointer + destOffset, writeLength - frameOffset);
 
+        //Pointer p = Runtime.getSystemRuntime().getMemoryManager().allocate((int) (writeLength - frameOffset));
+        //buf.transferTo(frameOffset, p, 0, writeLength - frameOffset);
+        //unsafe.copyMemory(buf.address() + frameOffset, p.address(), writeLength - frameOffset);
+
+        //pushBuffer(p);
+        //pushBuffer(Runtime.getSystemRuntime().getMemoryManager().newPointer(buf.address() + frameOffset, writeLength - frameOffset));
+
         if(offset + writeLength == frameSize){
             System.out.println("Pushing frame");
             pushBuffer(frameBuffer);
+        }
+    }*/
+
+    @Override
+    public void handleVideoData(int index, Pointer buf, long offset, long writeLength) {
+        if(true) return;
+        int frameOffset = 0;
+        long destOffset = 0;
+        if(offset == 0){
+            frameOffset = 18;
+        } else {
+            destOffset = offset - 18;
+        }
+
+        //buf.transferTo(frameOffset, frameBufferPointer, destOffset, writeLength - frameOffset);
+        unsafe.copyMemory(buf.address() + frameOffset, frameBufferBasePointer + destOffset, writeLength - frameOffset);
+
+        //Pointer p = Runtime.getSystemRuntime().getMemoryManager().allocate((int) (writeLength - frameOffset));
+        //buf.transferTo(frameOffset, p, 0, writeLength - frameOffset);
+        //unsafe.copyMemory(buf.address() + frameOffset, p.address(), writeLength - frameOffset);
+
+        //pushBuffer(p);
+        //pushBuffer(Runtime.getSystemRuntime().getMemoryManager().newPointer(buf.address() + frameOffset, writeLength - frameOffset));
+
+        if(offset + writeLength == frameSize){
+            System.out.println("Pushing frame");
+            pushBuffer(frameBuffer);
+
+            frameBuffer = ByteBuffer.allocateDirect(bufferSize);
+            //frameBufferPointer = Pointer.wrap(Runtime.getSystemRuntime(), frameBuffer);
+            frameBufferBasePointer = unsafe.getLong(frameBuffer, addressBufferOffset);
+            /*try {
+                frameBufferBasePointer = (long) bAddr.get(frameBuffer);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }*/
         }
     }
 }

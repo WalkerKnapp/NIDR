@@ -5,6 +5,8 @@ import com.walker.pipeline.PipelineOutput;
 import gq.luma.render.RenderSettings;
 import io.humble.ferry.Buffer;
 import io.humble.video.*;
+import jnr.ffi.Pointer;
+import jnr.ffi.Runtime;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,7 +15,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-public class HumbleVideoOutput extends PipelineOutput {
+public class HumbleVideoOutput extends PipelineOutput<ByteBuffer> {
     private static final Logger logger = LogManager.getLogger();
 
     private Muxer muxer;
@@ -98,13 +100,38 @@ public class HumbleVideoOutput extends PipelineOutput {
         muxer.close();
     }
 
-    @Override
     protected void consumeBuffer(ByteBuffer buffer) {
+
         System.out.println("Encoding frame: " + frameIndex);
 
         buffer.position(0);
         rawFrameBuffer.position(0);
         rawFrameBuffer.put(buffer);
+
+        rawFrame.setTimeStamp(frameIndex++);
+        rawFrame.setComplete(true);
+
+        videoResampler.resample(resampledFrame, rawFrame);
+
+        do {
+            videoEncoder.encode(videoPacket, resampledFrame);
+            if(videoPacket.isComplete()){
+                muxer.write(videoPacket, true);
+            }
+        } while (videoPacket.isComplete());
+    }
+
+    @Override
+    protected ByteBuffer provideZCBuffer() {
+        //return Pointer.wrap(Runtime.getSystemRuntime(), rawFrameBuffer);
+        return null;
+    }
+
+    @Override
+    protected void consumeZC() {
+
+        System.out.println("Encoding frame: " + frameIndex);
+
 
         rawFrame.setTimeStamp(frameIndex++);
         rawFrame.setComplete(true);

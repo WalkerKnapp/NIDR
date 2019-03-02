@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.WalkerKnapp:pipeline:4490d1eaaf'
+    implementation 'com.github.WalkerKnapp:pipeline:8e1bdd7827'
     compile 'com.github.serceman:jnr-fuse:0.5.2.1'
     compile group: 'io.humble', name: 'humble-video-all', version: '0.2.1'
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'

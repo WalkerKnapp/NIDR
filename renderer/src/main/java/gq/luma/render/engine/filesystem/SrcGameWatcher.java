@@ -59,7 +59,7 @@ public class SrcGameWatcher extends FuseStubFS {
         Path hardLinkPath = Paths.get("V:/");
 
         // Start FUSE filesystem
-        this.mount(hardLinkPath, false, false);
+        this.mount(hardLinkPath, false, false, new String[]{"-o", "big_writes", "-o", "max_write=104857600"});
 
         Files.createSymbolicLink(config.getLogPath(), nidrPath.resolve("console.log"));
 
@@ -85,7 +85,7 @@ public class SrcGameWatcher extends FuseStubFS {
     public int statfs(String path, Statvfs stbuf) {
         if (Platform.getNativePlatform().getOS() == WINDOWS && "/".equals(path)) {
             stbuf.f_blocks.set(1024 * 1024); // total data blocks in file system
-            stbuf.f_frsize.set(1024);        // fs block size
+            stbuf.f_frsize.set(1024 * 10);        // fs block size
             stbuf.f_bfree.set(1024 * 1024);  // free blocks in fs
         }
         return 0;
