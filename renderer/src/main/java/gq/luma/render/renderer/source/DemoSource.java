@@ -143,7 +143,6 @@ public abstract class DemoSource extends PipelineSource<ByteBuffer> implements F
 
     @Override
     public void handleVideoData(int index, Pointer buf, long offset, long writeLength) {
-        if(true) return;
         int frameOffset = 0;
         long destOffset = 0;
         if(offset == 0){
