@@ -10,15 +10,14 @@ sourceCompatibility = 9
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
     maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    implementation 'com.github.WalkerKnapp:pipeline:1cd9ed1a46'
+    implementation project(":renderer")
+//    implementation 'com.github.WalkerKnapp:sdp-java:4665875'
     implementation 'io.wkna:sdp:1.0-SNAPSHOT'
-    implementation 'com.github.serceman:jnr-fuse:0.5.2.1'
-    implementation group: 'io.humble', name: 'humble-video-all', version: '0.3.0'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'
+    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.9.1'
+    implementation group: 'com.eclipsesource.minimal-json', name: 'minimal-json', version: '0.9.5'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

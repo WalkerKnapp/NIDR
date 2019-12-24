@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+        <RollingFile name="tracefile" class="org.apache.log4j.RollingFileAppender" fileName="log/trace.log"
+              filePattern="log/trace-%d{yyyy-MM-dd}-%i.log"
+              immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+        </RollingFile>
+        <RollingFile name="debugfile" class="org.apache.log4j.RollingFileAppender" fileName="log/debug.log"
+              filePattern="log/debug-%d{yyyy-MM-dd}-%i.log"
+              immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+        </RollingFile>
+        <RollingFile name="infofile" class="org.apache.log4j.RollingFileAppender" fileName="log/info.log"
+              filePattern="log/info-%d{yyyy-MM-dd}-%i.log"
+              immediateFlush="false" append="false">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <logger name="tracelogger" level="trace">
+            <AppenderRef ref="tracefile"/>
+        </logger>
+        <Root level="debug">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="debugfile"/>
+        </Root>
+        <logger name="infologger" level="info">
+            <AppenderRef ref="infofile"/>
+        </logger>
+    </Loggers>
+</Configuration>

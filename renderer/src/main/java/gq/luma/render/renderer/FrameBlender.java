@@ -1,18 +1,18 @@
 package gq.luma.render.renderer;
 
 import com.walker.pipeline.PipelineDatatype;
-import com.walker.pipeline.PipelineJoint;
+import com.walker.pipeline.longtype.LongPipelineJoint;
 import gq.luma.render.RenderSettings;
 import jnr.ffi.NativeType;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
 import jnr.ffi.Type;
+import sun.misc.Unsafe;
 
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.util.Arrays;
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class FrameBlender extends PipelineJoint<ByteBuffer> {
+public class FrameBlender extends LongPipelineJoint {
 
     private static final Type UCHAR_TYPE = Runtime.getSystemRuntime().findType(NativeType.UCHAR);
 
@@ -20,10 +20,12 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
     private int bufferSize;
     //private float multiplier;
 
-    private ByteBuffer storedBuffer;
+    private long totalBufferPointer;
     private int[] totalData;
-    private byte[] wrappedData;
     private int framesAccumulated;
+
+    private AtomicBoolean shutdown = new AtomicBoolean(false);
+    private Thread blenderThread;
 
     //private Pointer totalAccumulator;
 
@@ -32,22 +34,34 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
 
     //private int accumulatedFrames = 0;
 
-    private ByteBuffer[] frameCache;
+    private long[] frameCache;
     private Object[] frameCacheLocks;
     private final Object frameCacheFull;
     private int frameIndex;
 
+    private Unsafe unsafe;
+
     public FrameBlender(RenderSettings settings) {
         super(PipelineDatatype.RAW_BGR24, PipelineDatatype.RAW_BGR24);
+
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            this.unsafe = (Unsafe) f.get(null);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+
         frameblend = settings.getFrameblend();
         //multiplier = 1f / settings.getFrameblend();
         bufferSize = settings.getWidth() * settings.getHeight() * 3;
         //accumulatedData = new int[bufferSize];
-        wrappedData = new byte[bufferSize];
+        //wrappedData = new byte[bufferSize];
         totalData = new int[bufferSize];
-        storedBuffer = ByteBuffer.wrap(wrappedData);
+        //storedBuffer = ByteBuffer.wrap(wrappedData);
+        totalBufferPointer = unsafe.allocateMemory(bufferSize);
 
-        frameCache = new ByteBuffer[frameblend];
+        frameCache = new long[frameblend];
         frameCacheLocks = new Object[frameblend];
         for(int i = 0; i < frameblend; i++) {
             frameCacheLocks[i] = new Object();
@@ -55,12 +69,13 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
         frameCacheFull = new Object();
         frameIndex = 0;
 
-        new Thread(() -> {
-            while(true) {
+        blenderThread = new Thread(() -> {
+            while(!shutdown.get()) {
                 //System.err.println("Processing buffers====================");
                 processBuffers();
             }
-        }).start();
+        }, "Blender-Thread");
+        blenderThread.start();
     }
 
     @Override
@@ -92,9 +107,9 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
         framesAccumulated++;
     }*/
 
-    protected void consumeBuffer(ByteBuffer buffer) {
+    protected void consumeBuffer(long buffer) {
         synchronized (frameCacheLocks[frameIndex]) {
-            if(frameCache[frameIndex] != null) {
+            if(0L != frameCache[frameIndex]) {
 
                 try {
                     frameCacheLocks[frameIndex].wait();
@@ -121,56 +136,52 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
     }
 
     private void processBuffers() {
-        /*synchronized (frameCacheFull) {
-            try {
-                System.err.println("waiting for framecachefull");
-                frameCacheFull.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }*/
+        final Unsafe unsafe = this.unsafe;
+        final int frameblend = this.frameblend;
+        final int bufferSize = this.bufferSize;
+
+        int j = 0;
 
         for(int i = 0; i < frameblend; i++) {
             synchronized (frameCacheLocks[i]) {
-                if(frameCache[i] == null) {
+                long thisFrame = frameCache[i];
+
+                if(0L == thisFrame) {
                     try {
-                        //System.err.println("waiting for framecachelocks[" + i + "]");
-                        frameCacheLocks[i].wait();
+                        frameCacheLocks[i].wait(0);
+                        thisFrame = frameCache[i];
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        return;
                     }
-
                 }
 
-                frameCache[i].position(0);
-                int j = 0;
-                while(frameCache[i].hasRemaining()){
-                //for(int j = 0; j < bufferSize; j++) {
-                    totalData[j++] += (frameCache[i].get() & 0xFF);
-                    //int sub = ((int) (( * multiplier) + (wrappedData[j] & 0xFF)));
-                    //if(sub > 0xFF) System.err.println("Pixel " + j + " is evil.");
-                    //wrappedData[j] = (byte) (sub);
-                    //j++;
+                j = 0;
+
+                while (j < bufferSize) {
+                    totalData[j] += unsafe.getByte(null, thisFrame + j) & 0xFF;
+                    j++;
                 }
 
-                frameCache[i] = null;
+                unsafe.freeMemory(frameCache[i]);
+
+                frameCache[i] = 0L;
                 //System.err.println("notifying framecachelocks[" + i + "]");
                 frameCacheLocks[i].notify();
             }
         }
 
         for(int i = 0; i < totalData.length; i++){
-            wrappedData[i] = (byte) (totalData[i] / frameblend);
+            unsafe.putByte(totalBufferPointer + i, (byte) (totalData[i] / frameblend));
         }
 
         System.err.println("pushing the buffer");
 
-        pushBuffer(storedBuffer);
-        totalData = new int[bufferSize];
+        pushBuffer(totalBufferPointer);
+        this.totalData = new int[bufferSize];
     }
 
-    protected void consumeBuffer(Pointer buffer) {
-        /*//System.out.println(buffer.size());
+    /*protected void consumeBuffer(Pointer buffer) {
+        //System.out.println(buffer.size());
         //if(buffer.size() == Long.MAX_VALUE) throw new IllegalStateException("mmmmax out");
         for(int i = 0; i < buffer.size(); i++) {
             accumulatedData[pointerIndex++] += buffer.getByte(i) & 0xFF;
@@ -190,12 +201,12 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
 
                 accumulatedFrames = 0;
             }
-        }*/
-    }
+        }
+    }*/
 
     @Override
-    protected ByteBuffer provideZCBuffer() {
-        return null;
+    protected long provideZCBuffer() {
+        return -1L;
     }
 
     @Override
@@ -205,6 +216,15 @@ public class FrameBlender extends PipelineJoint<ByteBuffer> {
 
     @Override
     protected void flush() {
-
+        shutdown.set(true);
+        try {
+            blenderThread.join(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        while (blenderThread.isAlive()) {
+            Thread.onSpinWait();
+            blenderThread.interrupt();
+        }
     }
 }

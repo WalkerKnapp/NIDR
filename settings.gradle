@@ -1,4 +1,6 @@
 rootProject.name = 'nidr'
 include 'renderer'
 include 'standalone'
+include 'plugins:workshop'
+include 'example'
 

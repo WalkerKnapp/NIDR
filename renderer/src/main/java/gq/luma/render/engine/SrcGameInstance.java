@@ -18,8 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 public class SrcGameInstance {
-    private SrcGame game;
-    private SrcGameConfiguration configuration;
+    private SrcGameConfiguration game;
     private BiConsumer<Throwable, Boolean> errorHandler;
 
     private SrcGameWatcher watcher;
@@ -27,9 +26,8 @@ public class SrcGameInstance {
     private ProcessHandle gameProcessHandle;
     private AtomicBoolean instanceClosed = new AtomicBoolean(false);
 
-    public SrcGameInstance(SrcGame game, SrcGameConfiguration configuration, BiConsumer<Throwable, Boolean> errorHandler){
-        this.game = game;
-        this.configuration = configuration;
+    public SrcGameInstance(SrcGameConfiguration configuration, BiConsumer<Throwable, Boolean> errorHandler){
+        this.game = configuration;
         this.errorHandler = errorHandler;
     }
 
@@ -39,10 +37,10 @@ public class SrcGameInstance {
         }
 
         try {
-            watcher = new SrcGameWatcher(configuration, videoHandler, audioHandler);
+            watcher = new SrcGameWatcher(game, videoHandler, audioHandler);
             addConfigEcho();
 
-            Optional <ProcessHandle> handleOptional = configuration.launchGame();
+            Optional <ProcessHandle> handleOptional = game.launchGame();
             watcher.watch("NIDR.Ready").join();
             //new Scanner(System.in).nextLine();
 
@@ -52,7 +50,7 @@ public class SrcGameInstance {
                                             .info()
                                             .command()
                                             .map(command ->
-                                                    command.contains(configuration.getExecutableName()))
+                                                    command.contains(game.getExecutableName()))
                                             .orElse(false))
                             .findAny()
                             .orElseThrow(() -> new IllegalStateException("Failed to find game executable when launched. Is the configuration correct?")));
@@ -75,7 +73,7 @@ public class SrcGameInstance {
     public CompletableFuture<Void> sendCommand(String... command) throws IOException {
         if(!instanceClosed.get()){
             String[] args = new String[3 + command.length];
-            args[0] = configuration.getExecutablePath();
+            args[0] = game.getExecutablePath();
             args[1] = "-hijack";
             args[2] = "-console";
             for(int i = 3; i < args.length; i++){
@@ -98,8 +96,8 @@ public class SrcGameInstance {
     }
 
     private void addConfigEcho() throws IOException {
-        Path configFile = configuration.getConfigPath().resolve("autoexec.cfg");
-        Path logBackup = configuration.getConfigPath().resolve("autoexec.cfg_nidr_backup");
+        Path configFile = game.getConfigPath().resolve("autoexec.cfg");
+        Path logBackup = game.getConfigPath().resolve("autoexec.cfg_nidr_backup");
         if(Files.exists(configFile)) {
             List<String> preExistingConfig = Files.readAllLines(configFile);
             if(preExistingConfig.stream().anyMatch(str -> str.contains("echo NIDR.Ready"))){
@@ -112,10 +110,6 @@ public class SrcGameInstance {
             Files.createFile(configFile);
         }
         Files.write(configFile, Collections.singleton("echo NIDR.Ready"), StandardOpenOption.APPEND);
-    }
-
-    public SrcGame getGame() {
-        return game;
     }
 
     public SrcGameWatcher getWatcher() {

@@ -1,20 +1,28 @@
 package gq.luma.render;
 
-import gq.luma.render.engine.SrcDemo;
+import io.wkna.sdp.SourceDemo;
 
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.util.List;
 
 public class RenderRequest {
-    private ArrayList<SrcDemo> demos;
+    private List<SourceDemo> demos;
     private RenderSettings settings;
+    private Path outputPath;
     private String status;
 
-    public RenderRequest(ArrayList<SrcDemo> demos, RenderSettings settings){
+    public RenderRequest(List<SourceDemo> demos, RenderSettings settings){
         this.demos = demos;
         this.settings = settings;
     }
 
-    public ArrayList<SrcDemo> getDemos() {
+    public RenderRequest(List<SourceDemo> demos, RenderSettings settings, Path outputPath){
+        this.demos = demos;
+        this.settings = settings;
+        this.outputPath = outputPath;
+    }
+
+    public List<SourceDemo> getDemos() {
         return demos;
     }
 
@@ -28,5 +36,9 @@ public class RenderRequest {
 
     public RenderSettings getSettings() {
         return settings;
+    }
+
+    public Path getOutputPath() {
+        return outputPath;
     }
 }

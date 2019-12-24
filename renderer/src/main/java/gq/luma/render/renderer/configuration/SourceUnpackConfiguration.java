@@ -1,11 +1,9 @@
 package gq.luma.render.renderer.configuration;
 
-import gq.luma.render.engine.SrcGame;
-
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 
 public class SourceUnpackConfiguration extends SrcGameConfiguration {
@@ -13,19 +11,16 @@ public class SourceUnpackConfiguration extends SrcGameConfiguration {
     private Path unpackDir;
     private String batchFile;
 
-    public SourceUnpackConfiguration(SrcGame game, String unpackDir, String batchFileName) {
-        super(game, Paths.get(unpackDir).resolve(game.getDirectoryName()).toString(),
-                Paths.get(unpackDir).resolve(game.getDirectoryName()).resolve("cfg").toString(),
-                Paths.get(unpackDir).resolve(game.getDirectoryName()).resolve("console.log").toString(),
+    public SourceUnpackConfiguration(String gameDirectoryName, int appCode, String unpackDir, String batchFileName) {
+        super(gameDirectoryName, appCode, Paths.get(unpackDir).resolve(gameDirectoryName).toString(),
+                Paths.get(unpackDir).resolve(gameDirectoryName).resolve("cfg").toString(),
+                Paths.get(unpackDir).resolve(gameDirectoryName).resolve("console.log").toString(),
                 Paths.get(unpackDir).resolve("hl2.exe").toString(),
                 "hl2.exe");
 
         this.unpackDir = Paths.get(unpackDir);
-        if(batchFileName == null) {
-            batchFile = game == SrcGame.PORTAL ? "Portal.bat" : "Half Life 2.bat";
-        } else {
-            batchFile = batchFileName;
-        }
+        batchFile = Objects.requireNonNullElseGet(batchFileName,
+                () -> (gameDirectoryName.equals("portal") ? "Portal.bat" : "Half Life 2.bat"));
     }
 
     @Override

@@ -2,10 +2,10 @@ package gq.luma.render.renderer.source;
 
 import gq.luma.render.RenderRequest;
 import gq.luma.render.RenderSettings;
-import gq.luma.render.engine.SrcDemo;
-import gq.luma.render.engine.SrcGame;
+import gq.luma.render.engine.SrcGameInstance;
 import gq.luma.render.renderer.configuration.SourceUnpackConfiguration;
 import gq.luma.render.renderer.configuration.SrcGameConfiguration;
+import io.wkna.sdp.SourceDemo;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,36 +15,39 @@ import java.util.List;
 public class SourceUnpackDemoSource extends DemoSource{
 
     public SourceUnpackDemoSource(){
-        gameConfigurations.put(SrcGame.PORTAL, new SourceUnpackConfiguration(SrcGame.PORTAL,"H:\\Portal 2\\Unpack", null));
+        gameConfigurations.put("portal",
+                new SourceUnpackConfiguration("portal", 400,"H:\\Portal 2\\Unpack", null));
     }
 
     @Override
     public void runSyncRender(RenderRequest renderRequest) throws Exception {
-        for (SrcDemo demo : renderRequest.getDemos()) {
+        for (SourceDemo demo : renderRequest.getDemos()) {
 
             // Start the game if not started
-            SrcGameConfiguration configuration = getConfiguration(demo.getGame());
-            setupGame(demo.getGame());
+            SrcGameConfiguration configuration = getConfiguration(demo.getGameDirectory());
+            SrcGameInstance gameInstance = setupGame(configuration);
 
             //TODO: Send info packet downstream in the pipeline
 
+            gameInstance.getWatcher().provideDemo(demo.createWriter());
+
             // Write start script
-            writeCfg(configuration, renderRequest.getSettings(), demo);
+            writeCfg(configuration, renderRequest.getSettings());
 
             // Start the render
-            runningGames.get(demo.getGame()).sendCommand("exec nidr.run.cfg");
+            gameInstance.sendCommand("exec nidr.run.cfg");
             updateStatus("Rendering");
 
             // Wait for dem_stop
             long startTime = System.currentTimeMillis();
-            runningGames.get(demo.getGame()).getWatcher().watch("dem_stop").join();
+            gameInstance.getWatcher().watch("dem_stop").join();
             long endTime = System.currentTimeMillis();
             System.out.println("Time spent rendering: " + ((endTime - startTime)/1000f));
 
         }
     }
 
-    private void writeCfg(SrcGameConfiguration configuration, RenderSettings settings, SrcDemo demo) throws IOException {
+    private void writeCfg(SrcGameConfiguration configuration, RenderSettings settings) throws IOException {
         List<String> configLines = new ArrayList<>();
         configLines.add("sv_cheats 1");
         configLines.addAll(settings.getAdditionalCommands());
@@ -55,7 +58,7 @@ public class SourceUnpackDemoSource extends DemoSource{
 
         configLines.add("startmovie nidr\\tga_ raw");
 
-        configLines.add("playdemo \"" + demo.getDemoPath().toString() + "\"");
+        configLines.add("playdemo nidr/dem");
         configLines.add("hud_reloadscheme");
 
         Files.write(configuration.getConfigPath().resolve("nidr.run.cfg"), configLines);

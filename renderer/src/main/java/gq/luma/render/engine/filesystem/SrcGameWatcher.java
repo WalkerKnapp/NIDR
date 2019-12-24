@@ -1,7 +1,7 @@
 package gq.luma.render.engine.filesystem;
 
-import gq.luma.render.engine.SrcGame;
 import gq.luma.render.renderer.configuration.SrcGameConfiguration;
+import io.wkna.sdp.DemoWriterChannel;
 import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
 import jnr.ffi.types.mode_t;
@@ -15,6 +15,7 @@ import ru.serce.jnrfuse.struct.Statvfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +28,8 @@ import static jnr.ffi.Platform.OS.WINDOWS;
 
 public class SrcGameWatcher extends FuseStubFS {
 
-    private SeekableByteChannel demoProvider;
+    private DemoWriterChannel demoWriter;
+    private SeekableByteChannel backupChannel = FileChannel.open(Paths.get("H:\\Portal 2\\Rendering\\tas\\coop\\rerender\\mp_coop_lobby_3_5.dem"));
 
     private FSAudioHandler audioHandler;
     private FSVideoHandler videoHandler;
@@ -59,15 +61,37 @@ public class SrcGameWatcher extends FuseStubFS {
         Path hardLinkPath = Paths.get("V:/");
 
         // Start FUSE filesystem
-        this.mount(hardLinkPath, false, false, new String[]{"-o", "big_writes", "-o", "max_write=104857600"});
+        this.mount(hardLinkPath, false, false, new String[]{"-o", "big_writes", "-o", "direct_io", "-o", "max_write=104857600"});
 
         Files.createSymbolicLink(config.getLogPath(), nidrPath.resolve("console.log"));
 
         Files.createSymbolicLink(nidrPath, hardLinkPath);
     }
 
-    public void provideDemo(SeekableByteChannel byteChannel){
-        this.demoProvider = byteChannel;
+    public SrcGameWatcher(String consoleLogDirPath, String startmoviePath, FSVideoHandler videoHandler, FSAudioHandler audioHandler) throws IOException {
+        Path nidrPath = Paths.get(startmoviePath).resolve("nidr");
+        Path consoleLogPath = Paths.get(consoleLogDirPath).resolve("console.log");
+        Files.deleteIfExists(nidrPath);
+
+        Files.deleteIfExists(consoleLogPath);
+
+        activeMonitors = new CopyOnWriteArrayList<>();
+        this.audioHandler = audioHandler;
+        this.videoHandler = videoHandler;
+
+        Path hardLinkPath = Paths.get("V:/");
+
+        // Start FUSE filesystem
+        this.mount(hardLinkPath, false, false, new String[]{"-o", "big_writes", "-o", "direct_io", "-o", "max_write=104857600"});
+
+        Files.createSymbolicLink(consoleLogPath, nidrPath.resolve("console.log"));
+
+        Files.createSymbolicLink(nidrPath, hardLinkPath);
+    }
+
+    public void provideDemo(DemoWriterChannel demoChannel){
+        if(this.demoWriter != null) demoWriter.close();
+        this.demoWriter = demoChannel;
     }
 
     public CompletableFuture<String> watch(String... contains){
@@ -78,6 +102,7 @@ public class SrcGameWatcher extends FuseStubFS {
 
     public void close(){
         this.umount();
+        if(this.demoWriter != null) demoWriter.close();
         activeMonitors.forEach(logMonitor -> logMonitor.future.completeExceptionally(new IllegalStateException("The game has been closed.")));
     }
 
@@ -105,11 +130,14 @@ public class SrcGameWatcher extends FuseStubFS {
         return 0;
     }
 
-    private String latestCreated;
+    private String latestCreated = "";
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo fi) {
         //System.out.println("Create call to " + path + ": " + fi.toString());
+        latestCreated = path;
+
+        //fi.flags.set(fi.flags.get() | OpenFlags.O_ASYNC.intValue());
 
         final int pathLength = path.length();
         char lastChar = path.charAt(pathLength - 1);
@@ -120,14 +148,15 @@ public class SrcGameWatcher extends FuseStubFS {
             case 'g':
             case 'G':
                 fi.fh.set(Integer.MIN_VALUE);
-                return -ErrorCodes.EEXIST(); // Path "something.log" already exists
+                return 0;
+                //return -ErrorCodes.EEXIST(); // Path "something.log" already exists
             case 'v':
             case 'V':
                 fi.fh.set(Integer.MAX_VALUE);
                 return 0; // Path "something.wav"
             case 'a':
             case 'A':
-                latestCreated = path;
+
                 // Find the frame index from the path name
                 int total = 0;
                 int j = 1;
@@ -170,13 +199,20 @@ public class SrcGameWatcher extends FuseStubFS {
                 } else {
                     return -ErrorCodes.ENOENT();
                 }
-            case 'w':
-            case 'W':
+            case 'v':
+            case 'V':
                 // File path is "something.wav"
+                //System.out.println("GETATTR CALL TO WAV FILE");
                 if(!latestCreated.isEmpty()) {
+                    //System.out.println("RETURNING AS EXISTS");
                     stat.st_mode.set(FileStat.S_IFREG | 0777);
+                    stat.st_uid.set(getContext().uid.get());
+                    stat.st_gid.set(getContext().pid.get());
+                    stat.st_blksize.set(4096);
+                    //stat.st_size.set(0);
                     return 0;
                 } else {
+                    //System.out.println("RETURNING NOT AS EXISTS");
                     return -ErrorCodes.ENOENT();
                 }
             case 'm':
@@ -184,11 +220,8 @@ public class SrcGameWatcher extends FuseStubFS {
                     stat.st_mode.set(FileStat.S_IFREG | 0777);
                     stat.st_uid.set(getContext().uid.get());
                     stat.st_gid.set(getContext().gid.get());
-                    try {
-                        stat.st_size.set(demoProvider.size());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    System.out.println("Demo size: " + demoWriter.size());
+                    stat.st_size.set(demoWriter.size());
                     return 0;
                 } else {
                     return -ErrorCodes.ENOENT();
@@ -205,17 +238,57 @@ public class SrcGameWatcher extends FuseStubFS {
         char lastChar = path.charAt(pathLength - 1);
 
         if(lastChar == 'm'){
+            //System.out.println("Reading demo, " + size + ", offset=" + offset);
             try {
-                byte[] byteBuf = new byte[(int) size];
-                ByteBuffer buffer = ByteBuffer.wrap(byteBuf);
-                demoProvider.position(offset);
-                demoProvider.read(buffer);
-                buf.put(0, byteBuf, 0, (int) size);
-            } catch (IOException e){
-                throw new IllegalStateException(e);
+                byte[] raw = new byte[(int) size];
+                ByteBuffer buffer = ByteBuffer.wrap(raw);
+                demoWriter.position(offset);
+                int read = demoWriter.read(buffer);
+                if(read == -1) {
+                    return -ErrorCodes.EIO();
+                }
+                if(size != read) System.err.println("Read asked for " + size + " but actually returned " + read);
+
+                /*byte[] backupBytes = new byte[(int) size];
+                ByteBuffer backupBuffer = ByteBuffer.wrap(backupBytes);
+                backupChannel.position(offset);
+                int backupRead = backupChannel.read(backupBuffer);
+
+                if(read != backupRead) {
+                    System.err.println("Backupread =/= read, " + backupRead + "=/=" + read);
+                }
+                boolean ident = true;
+                for(int i = 0; i < size; i++) {
+                    if(buffer.get(i) != backupBuffer.get(i)) {
+                        ident = false;
+                    }
+                }
+                if(!ident) {
+                    System.err.println("ReadBuffer =/= BackupBuffer");
+                    System.err.println(bytesToHex(raw));
+                    System.err.println(bytesToHex(backupBytes));
+                }*/
+
+                buf.put(0, raw, 0, read);
+                return read;
+            } catch (Exception e){
+                e.printStackTrace();
+                //throw new IllegalStateException(e);
+                return 0;
             }
         }
         return (int) size;
+    }
+
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
     @Override
@@ -225,6 +298,7 @@ public class SrcGameWatcher extends FuseStubFS {
         switch (fileHandle){
             case Integer.MAX_VALUE: // Audio Data
                 audioHandler.handleAudioData(buf, offset, size);
+                //System.out.println("=========================Handled audio write: offset=" + offset + ",size=" + size);
                 break;
             case Integer.MIN_VALUE: // Log Data
                 byte[] lineData = new byte[(int) size];
@@ -232,7 +306,16 @@ public class SrcGameWatcher extends FuseStubFS {
                 handleLogEntry(new String(lineData));
                 break;
             default: // Video Data
-                videoHandler.handleVideoData(fileHandle, buf, offset, size);
+                if(path.endsWith("wav")) {
+                    //System.err.println("wav fell through.");
+                    audioHandler.handleAudioData(buf, offset, size);
+                    //System.out.println("=========================Handled audio write: offset=" + offset + ",size=" + size);
+                    break;
+                } else if (path.endsWith("tga")) {
+                    videoHandler.handleVideoData(fileHandle, buf, offset, size);
+                } else {
+                    System.err.println("Bad write to path: " + path);
+                }
 
         }
         return (int) size;
@@ -242,7 +325,7 @@ public class SrcGameWatcher extends FuseStubFS {
         //System.out.println("Handling log entry: " + entry);
         for(LogMonitor monitor : activeMonitors){
             for(String match : monitor.matches){
-                if(entry.contains(match)){
+                if(entry.contains(match) && !entry.contains("coop_bluebot_load")){
                     monitor.future.complete(match);
                     activeMonitors.remove(monitor);
                     break;

@@ -1,17 +1,14 @@
 package gq.luma.render.renderer.configuration;
 
-import gq.luma.render.engine.SrcGame;
-
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Optional;
 
 public abstract class SrcGameConfiguration {
-    private SrcGame game;
+    private String directoryName;
+    private int appCode;
 
     private String gameDir;
     private String configDir;
@@ -19,8 +16,10 @@ public abstract class SrcGameConfiguration {
     private String executablePath;
     private String executableName;
 
-    public SrcGameConfiguration(SrcGame game, String gameDir, String configDir, String logPath, String executablePath, String executableName){
-        this.game = game;
+    public SrcGameConfiguration(String directoryName, int appCode,
+                                String gameDir, String configDir, String logPath, String executablePath, String executableName){
+        this.directoryName = directoryName;
+        this.appCode = appCode;
         this.gameDir = gameDir;
         this.configDir = configDir;
         this.logPath = logPath;
@@ -48,9 +47,13 @@ public abstract class SrcGameConfiguration {
         return executableName;
     }
 
-    public abstract Optional<ProcessHandle> launchGame() throws URISyntaxException, IOException;
-
-    public SrcGame getGame() {
-        return game;
+    public String getDirectoryName() {
+        return directoryName;
     }
+
+    public int getAppCode() {
+        return appCode;
+    }
+
+    public abstract Optional<ProcessHandle> launchGame() throws URISyntaxException, IOException;
 }

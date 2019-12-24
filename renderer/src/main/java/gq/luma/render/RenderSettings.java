@@ -18,6 +18,11 @@ public class RenderSettings {
     private boolean forceStartOdd;
     private boolean removeBrokenFrames;
 
+    private int skipFrames;
+
+    private boolean splitScreenWorkaround;
+    private int initialPauseTiming = 0;
+
     private List<String> additionalCommands;
 
     public int getWidth() {
@@ -114,5 +119,29 @@ public class RenderSettings {
 
     public void setStartOddSpecified(boolean startOddSpecified) {
         this.startOddSpecified = startOddSpecified;
+    }
+
+    public boolean isSplitScreenWorkaround() {
+        return splitScreenWorkaround;
+    }
+
+    public void setSplitScreenWorkaround(boolean splitScreenWorkaround) {
+        this.splitScreenWorkaround = splitScreenWorkaround;
+    }
+
+    public int getSkipFrames() {
+        return skipFrames;
+    }
+
+    public void setSkipFrames(int skipFrames) {
+        this.skipFrames = skipFrames;
+    }
+
+    public int getInitialPauseTiming() {
+        return initialPauseTiming;
+    }
+
+    public void setInitialPauseTiming(int initialPauseTiming) {
+        this.initialPauseTiming = initialPauseTiming;
     }
 }
